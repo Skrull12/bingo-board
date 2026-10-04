@@ -170,11 +170,10 @@
     <div class="status" id="statusText">Loading board data...</div>
 
     <script>
-        // Board Tile Names CSV
-        const TEAM_A_BOARD_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQoF1q_MAzJEkrLxHoiKKnlNUNrn54ULF6WXLDl1V4-RJxcTR0kO3r3d--ABZ7c-fX0ML_orATJM-Ab/pub?gid=924603285&single=true&output=csv";
-        
-        // Published Calc_Team A CSV Link
-        const TEAM_A_CALC_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQoF1q_MAzJEkrLxHoiKKnlNUNrn54ULF6WXLDl1V4-RJxcTR0kO3r3d--ABZ7c-fX0ML_orATJM-Ab/pub?gid=66597238&single=true&output=csv";
+        // Direct Export CSV endpoints from Google Drive
+        const TEAM_A_BOARD_CSV_URL = "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=924603285";
+        const TEAM_A_CALC_CSV_URL = "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=66597238";
+
         const REFRESH_INTERVAL_SECS = 60;
         let countdownSecs = REFRESH_INTERVAL_SECS;
         let timerInterval = null;
@@ -243,37 +242,39 @@
             status.innerText = "Fetching live Team A data...";
 
             try {
-                // Fetch Board Tile Names with cache-busting
-                const boardRes = await fetch(TEAM_A_BOARD_CSV_URL, { cache: "no-store" });
-                const boardText = await boardRes.text();
-                const boardRows = parseCSV(boardText);
+                // Add timestamp query parameter to defeat browser/CDN caching
+                const cacheBuster = `&_cb=${Date.now()}`;
 
-                // Fetch Completion States from Calc Tab
-                let calcRows = [];
-                if (TEAM_A_CALC_CSV_URL && !TEAM_A_CALC_CSV_URL.includes("YOUR_CALC")) {
-                    try {
-                        const calcRes = await fetch(TEAM_A_CALC_CSV_URL, { cache: "no-store" });
-                        const calcText = await calcRes.text();
-                        calcRows = parseCSV(calcText);
-                    } catch (e) {
-                        console.warn("Could not fetch Calc tab data:", e);
-                    }
+                // Fetch Board Layout and Completion Statuses
+                const [boardRes, calcRes] = await Promise.all([
+                    fetch(TEAM_A_BOARD_CSV_URL + cacheBuster, { cache: "no-store" }),
+                    fetch(TEAM_A_CALC_CSV_URL + cacheBuster, { cache: "no-store" })
+                ]);
+
+                if (!boardRes.ok || !calcRes.ok) {
+                    throw new Error("CSV network response was not ok");
                 }
+
+                const boardText = await boardRes.text();
+                const calcText = await calcRes.text();
+
+                const boardRows = parseCSV(boardText);
+                const calcRows = parseCSV(calcText);
 
                 grid.innerHTML = "";
 
-                // Map grid cell by cell matching (Row x Col)
                 const tiles = [];
                 let completedCount = 0;
 
                 boardRows.forEach((row, rIdx) => {
                     row.forEach((cell, cIdx) => {
                         const val = cell.trim();
+                        // Filter out headers, blank cells, and boolean values
                         if (val && !val.startsWith("Team") && val.toLowerCase() !== "false" && val.toLowerCase() !== "true") {
                             
                             let isDone = false;
-                            if (calcRows[rIdx] && calcRows[rIdx][cIdx]) {
-                                const calcVal = calcRows[rIdx][cIdx].trim().toUpperCase();
+                            if (calcRows[rIdx] && calcRows[rIdx][cIdx] !== undefined) {
+                                const calcVal = String(calcRows[rIdx][cIdx]).trim().toUpperCase();
                                 isDone = (calcVal === "TRUE" || calcVal === "1" || calcVal === "DONE");
                             }
 
@@ -283,7 +284,7 @@
                     });
                 });
 
-                // Render tiles
+                // Render 25 tiles
                 tiles.slice(0, 25).forEach(tileObj => {
                     const tile = document.createElement('div');
                     tile.className = `bingo-tile ${tileObj.completed ? 'completed' : ''}`;
@@ -295,13 +296,13 @@
                 status.innerText = `Live board synced. Last update: ${new Date().toLocaleTimeString()}`;
 
             } catch (err) {
-                console.error(err);
-                status.innerText = "Error loading board data. Check CSV permissions.";
+                console.error("Board load error:", err);
+                status.innerText = "Error loading board data. Ensure Google Sheet sharing is 'Anyone with the link'.";
             } finally {
                 isFetching = false;
                 btn.disabled = false;
                 btn.innerText = "🔄 Refresh Board";
-                startTimer(); // Reset countdown timer back to 60s
+                startTimer();
             }
         }
 
