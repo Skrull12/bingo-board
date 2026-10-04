@@ -297,7 +297,6 @@
 
         <!-- ================= VIEW 1: HUB STANDINGS ================= -->
         <div class="view-section active" id="view-hub">
-            <!-- Team Leaderboard / Stacked Progress Rows -->
             <div class="card">
                 <h2>⚔ Team Standings Race</h2>
                 <div class="team-rows-container">
@@ -323,7 +322,6 @@
                 </div>
             </div>
 
-            <!-- MVP Player Leaderboard -->
             <div class="card">
                 <h2>🥇 Player MVP Leaderboard</h2>
                 <table>
@@ -341,7 +339,6 @@
                 </table>
             </div>
 
-            <!-- Recent Drops Live Activity Feed -->
             <div class="card">
                 <h2>📜 Recent Drop Activity Feed</h2>
                 <table>
@@ -364,9 +361,9 @@
         <div class="view-section" id="view-teamA">
             <div class="card" style="text-align: center;">
                 <h2 style="color: var(--team-a-color);">Team A Bingo Grid</h2>
-                <div style="font-size: 1.1font; font-weight: bold; color: var(--gold-accent); margin-bottom: 10px;" id="progressCounterA">Progress: -- / 25 Tiles Completed</div>
+                <div style="font-size: 1.1rem; font-weight: bold; color: var(--gold-accent); margin-bottom: 10px;" id="progressCounterA">Progress: -- / 25 Tiles Completed</div>
                 <div class="bingo-grid" id="bingoGridA">
-                    <!-- Team A Grid Rendered Here -->
+                    <div>Loading board...</div>
                 </div>
             </div>
         </div>
@@ -375,9 +372,9 @@
         <div class="view-section" id="view-teamB">
             <div class="card" style="text-align: center;">
                 <h2 style="color: var(--team-b-color);">Team B Bingo Grid</h2>
-                <div style="font-size: 1.1font; font-weight: bold; color: var(--gold-accent); margin-bottom: 10px;" id="progressCounterB">Progress: -- / 25 Tiles Completed</div>
+                <div style="font-size: 1.1rem; font-weight: bold; color: var(--gold-accent); margin-bottom: 10px;" id="progressCounterB">Progress: -- / 25 Tiles Completed</div>
                 <div class="bingo-grid" id="bingoGridB">
-                    <!-- Team B Grid Rendered Here -->
+                    <div>Loading board...</div>
                 </div>
             </div>
         </div>
@@ -480,10 +477,10 @@
                 const cb = `&_cb=${Date.now()}`;
 
                 const [boardRes, calcARes, calcBRes, dropLogRes] = await Promise.all([
-                    fetch(SOURCES.board + cb).catch(() => null),
-                    fetch(SOURCES.calcA + cb).catch(() => null),
-                    fetch(SOURCES.calcB + cb).catch(() => null),
-                    fetch(SOURCES.dropLog + cb).catch(() => null)
+                    fetch(SOURCES.board + cb).then(r => r.text()).catch(e => { console.error("Board fetch error", e); return null; }),
+                    fetch(SOURCES.calcA + cb).then(r => r.text()).catch(e => { console.error("Calc A fetch error", e); return null; }),
+                    fetch(SOURCES.calcB + cb).then(r => r.text()).catch(e => { console.error("Calc B fetch error", e); return null; }),
+                    fetch(SOURCES.dropLog + cb).then(r => r.text()).catch(e => { console.error("Drop Log fetch error", e); return null; })
                 ]);
 
                 // Helper to count score matrix
@@ -500,8 +497,8 @@
                     return Math.floor(count / 2);
                 }
 
-                const scoreA = calcARes && calcARes.ok ? countTeamScore(await calcARes.text()) : 0;
-                const scoreB = calcBRes && calcBRes.ok ? countTeamScore(await calcBRes.text()) : 0;
+                const scoreA = countTeamScore(calcARes);
+                const scoreB = countTeamScore(calcBRes);
 
                 // Update Hub Progress
                 document.getElementById('teamAScore').innerText = scoreA;
@@ -511,8 +508,8 @@
 
                 // Render Team A Board
                 if (boardRes && calcARes) {
-                    const boardRows = parseCSV(await boardRes.text());
-                    const calcARows = parseCSV(await calcARes.text());
+                    const boardRows = parseCSV(boardRes);
+                    const calcARows = parseCSV(calcARes);
                     const gridA = document.getElementById('bingoGridA');
                     gridA.innerHTML = "";
                     let aCount = 0;
@@ -545,8 +542,8 @@
 
                 // Render Team B Board
                 if (boardRes && calcBRes) {
-                    const boardRows = parseCSV(await boardRes.text());
-                    const calcBRows = parseCSV(await calcBRes.text());
+                    const boardRows = parseCSV(boardRes);
+                    const calcBRows = parseCSV(calcBRes);
                     const gridB = document.getElementById('bingoGridB');
                     gridB.innerHTML = "";
                     let bCount = 0;
@@ -578,8 +575,8 @@
                 }
 
                 // Process Drop Log for MVP & Feed
-                if (dropLogRes && dropLogRes.ok) {
-                    const logRows = parseCSV(await dropLogRes.text());
+                if (dropLogRes) {
+                    const logRows = parseCSV(dropLogRes);
                     const dataRows = logRows.slice(1).filter(r => r.length >= 4 && r[2]);
 
                     // Recent Feed
@@ -650,7 +647,7 @@
 
             } catch (err) {
                 console.error("Sync error:", err);
-                status.innerText = "Error syncing data. Check Google Sheet permissions.";
+                status.innerText = "Error syncing data. Check Google Sheet publishing status.";
             } finally {
                 isFetching = false;
                 btn.disabled = false;
