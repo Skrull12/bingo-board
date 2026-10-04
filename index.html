@@ -14,6 +14,8 @@
             --completed-bg: #1e3a29;
             --completed-border: #2ecc71;
             --btn-hover: #b59226;
+            --team-a-color: #2ecc71;
+            --team-b-color: #3498db;
         }
 
         body {
@@ -34,6 +36,8 @@
             flex-direction: column;
             align-items: center;
             gap: 12px;
+            width: 100%;
+            max-width: 950px;
         }
 
         h1 {
@@ -42,6 +46,47 @@
             font-size: 2.2rem;
             text-transform: uppercase;
             letter-spacing: 2px;
+        }
+
+        /* Head-to-Head Team Race Bar */
+        .team-race-card {
+            width: 100%;
+            background-color: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            box-sizing: border-box;
+        }
+
+        .race-bar-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 1.05rem;
+            margin-bottom: 8px;
+        }
+
+        .race-header-a { color: var(--team-a-color); }
+        .race-header-b { color: var(--team-b-color); }
+
+        .race-bar-track {
+            height: 18px;
+            background-color: #0f1115;
+            border-radius: 9px;
+            display: flex;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .race-bar-fill-a {
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            transition: width 0.5s ease;
+        }
+
+        .race-bar-fill-b {
+            background: linear-gradient(90deg, #2980b9, #3498db);
+            transition: width 0.5s ease;
         }
 
         .subtitle {
@@ -180,6 +225,19 @@
 
     <header>
         <h1>🏆 Event Bingo Standings</h1>
+
+        <!-- Head-to-Head Race Bar -->
+        <div class="team-race-card">
+            <div class="race-bar-header">
+                <span class="race-header-a">⚔️ Team A: <strong id="teamAScore">0</strong>/25</span>
+                <span class="race-header-b">⚔️ Team B: <strong id="teamBScore">0</strong>/25</span>
+            </div>
+            <div class="race-bar-track">
+                <div class="race-bar-fill-a" id="barFillA" style="width: 50%;"></div>
+                <div class="race-bar-fill-b" id="barFillB" style="width: 50%;"></div>
+            </div>
+        </div>
+
         <p class="subtitle" id="subtitleText">Live Board — Team A</p>
 
         <div class="team-selector">
@@ -204,6 +262,8 @@
     <div class="status" id="statusText">Loading board data...</div>
 
     <script>
+        const SUMMARY_CSV_URL = "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=2012148001";
+
         const TEAMS = {
             "Team A": {
                 boardUrl: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=924603285",
@@ -299,7 +359,9 @@
                 const config = TEAMS[currentTeam];
                 const cacheBuster = `&_cb=${Date.now()}`;
 
-                const [boardRes, calcRes] = await Promise.all([
+                // Fetch Summary, Active Board, and Active Calc CSVs concurrently
+                const [summaryRes, boardRes, calcRes] = await Promise.all([
+                    fetch(SUMMARY_CSV_URL + cacheBuster, { cache: "no-store" }).catch(() => null),
                     fetch(config.boardUrl + cacheBuster, { cache: "no-store" }),
                     fetch(config.calcUrl + cacheBuster, { cache: "no-store" })
                 ]);
@@ -308,9 +370,9 @@
                     throw new Error("CSV network response was not ok");
                 }
 
+                // Parse Board and Calc data
                 const boardText = await boardRes.text();
                 const calcText = await calcRes.text();
-
                 const boardRows = parseCSV(boardText);
                 const calcRows = parseCSV(calcText);
 
@@ -336,6 +398,7 @@
                     });
                 });
 
+                // Render 25 Tiles
                 tiles.slice(0, 25).forEach(tileObj => {
                     const tile = document.createElement('div');
                     tile.className = `bingo-tile ${tileObj.completed ? 'completed' : ''}`;
@@ -344,6 +407,32 @@
                 });
 
                 progress.innerText = `Progress: ${completedCount} / ${Math.min(tiles.length, 25)} Tiles Completed`;
+
+                // Update Race Bar using Summary Tab (or fallback to active team count)
+                let scoreA = currentTeam === 'Team A' ? completedCount : 0;
+                let scoreB = currentTeam === 'Team B' ? completedCount : 0;
+
+                if (summaryRes && summaryRes.ok) {
+                    try {
+                        const summaryText = await summaryRes.text();
+                        const summaryRows = parseCSV(summaryText);
+                        // Extract numeric values from Summary tab
+                        summaryRows.forEach(row => {
+                            if (row[0] && row[0].includes("Team A")) scoreA = parseInt(row[1]) || scoreA;
+                            if (row[0] && row[0].includes("Team B")) scoreB = parseInt(row[1]) || scoreB;
+                        });
+                    } catch (e) {
+                        console.warn("Could not parse Summary CSV:", e);
+                    }
+                }
+
+                document.getElementById('teamAScore').innerText = scoreA;
+                document.getElementById('teamBScore').innerText = scoreB;
+
+                const combined = (scoreA + scoreB) || 1;
+                document.getElementById('barFillA').style.width = `${(scoreA / combined) * 100}%`;
+                document.getElementById('barFillB').style.width = `${(scoreB / combined) * 100}%`;
+
                 status.innerText = `Live board synced (${currentTeam}). Last update: ${new Date().toLocaleTimeString()}`;
 
             } catch (err) {
