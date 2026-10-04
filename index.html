@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSRS Bingo Event Boards</title>
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --card-bg: #1a1d24;
+            --border-color: #2e3440;
+            --gold-accent: #d4af37;
+            --text-color: #e5e9f0;
+            --completed-bg: #1e3a29;
+            --completed-border: #2ecc71;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            color: var(--gold-accent);
+            margin: 0 0 15px 0;
+            font-size: 2.2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .team-selector {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .team-btn {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border: 2px solid var(--border-color);
+            padding: 10px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .team-btn:hover {
+            border-color: var(--gold-accent);
+        }
+
+        .team-btn.active {
+            background-color: var(--gold-accent);
+            color: #000;
+            border-color: var(--gold-accent);
+        }
+
+        .bingo-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            max-width: 950px;
+            width: 100%;
+        }
+
+        .bingo-tile {
+            background-color: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            line-height: 1.3;
+            word-break: break-word;
+        }
+
+        .bingo-tile.completed {
+            background-color: var(--completed-bg);
+            border-color: var(--completed-border);
+            color: #a3e635;
+        }
+
+        .status {
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🏆 Event Bingo Standings</h1>
+        <div class="team-selector">
+            <button class="team-btn active" onclick="loadBoard('Team A')">Team A</button>
+            <button class="team-btn" onclick="loadBoard('Team B')">Team B</button>
+            <button class="team-btn" onclick="loadBoard('Team C')">Team C</button>
+        </div>
+    </header>
+
+    <div class="bingo-grid" id="bingoGrid">
+        <!-- 5x5 Grid rendered dynamically -->
+    </div>
+
+    <div class="status" id="statusText">Loading board data...</div>
+
+    <script>
+        // Published Google Sheets CSV links
+        const BOARDS = {
+            "Team A": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQoF1q_MAzJEkrLxHoiKKnlNUNrn54ULF6WXLDl1V4-RJxcTR0kO3r3d--ABZ7c-fX0ML_orATJM-Ab/pub?gid=924603285&single=true&output=csv",
+            "Team B": "YOUR_TEAM_B_CSV_URL_HERE",
+            "Team C": "YOUR_TEAM_C_CSV_URL_HERE"
+        };
+
+        let currentTeam = "Team A";
+
+        function parseCSV(text) {
+            const lines = text.trim().split("\n");
+            return lines.map(line => {
+                const values = [];
+                let insideQuotes = false;
+                let currentValue = "";
+
+                for (let char of line) {
+                    if (char === '"') {
+                        insideQuotes = !insideQuotes;
+                    } else if (char === ',' && !insideQuotes) {
+                        values.push(currentValue.trim().replace(/^"|"$/g, ''));
+                        currentValue = "";
+                    } else {
+                        currentValue += char;
+                    }
+                }
+                values.push(currentValue.trim().replace(/^"|"$/g, ''));
+                return values;
+            });
+        }
+
+        async function loadBoard(teamName) {
+            currentTeam = teamName;
+            
+            document.querySelectorAll('.team-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText === teamName);
+            });
+
+            const grid = document.getElementById('bingoGrid');
+            const status = document.getElementById('statusText');
+            grid.innerHTML = "";
+            status.innerText = `Fetching live data for ${teamName}...`;
+
+            const url = BOARDS[teamName];
+            if (!url || url.includes("YOUR_TEAM_")) {
+                status.innerText = `Please add the published CSV link for ${teamName} in index.html.`;
+                return;
+            }
+
+            try {
+                const response = await fetch(url);
+                const csvData = await response.text();
+                const rows = parseCSV(csvData);
+
+                const tiles = [];
+                rows.forEach(row => {
+                    row.forEach(cell => {
+                        const val = cell.trim();
+                        // Filter out headers, empty cells, and booleans
+                        if (val && !val.startsWith("Team") && val.toLowerCase() !== "false" && val.toLowerCase() !== "true") {
+                            if (!tiles.includes(val)) {
+                                tiles.push(val);
+                            }
+                        }
+                    });
+                });
+
+                // Render the 25 tiles into a 5x5 grid
+                tiles.slice(0, 25).forEach(tileText => {
+                    const tile = document.createElement('div');
+                    tile.className = 'bingo-tile';
+                    tile.innerText = tileText;
+                    grid.appendChild(tile);
+                });
+
+                status.innerText = `Live board synced. Last update: ${new Date().toLocaleTimeString()}`;
+
+            } catch (err) {
+                console.error(err);
+                status.innerText = "Error loading board data. Please verify the published CSV link.";
+            }
+        }
+
+        // Initial load for Team A
+        loadBoard('Team A');
+
+        // Automatically refresh data every 60 seconds
+        setInterval(() => loadBoard(currentTeam), 60000);
+    </script>
+</body>
+</html>
