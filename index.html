@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OSRS Bingo - Team A Board</title>
+    <title>OSRS Bingo Event Boards</title>
     <style>
         :root {
             --bg-color: #0f1115;
@@ -33,7 +33,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
         h1 {
@@ -48,6 +48,35 @@
             color: #888;
             font-size: 1rem;
             margin: 0;
+        }
+
+        .team-selector {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 5px;
+        }
+
+        .team-btn {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border: 2px solid var(--border-color);
+            padding: 8px 20px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .team-btn:hover {
+            border-color: var(--gold-accent);
+        }
+
+        .team-btn.active {
+            background-color: var(--gold-accent);
+            color: #0f1115;
+            border-color: var(--gold-accent);
         }
 
         .controls-bar {
@@ -151,7 +180,12 @@
 
     <header>
         <h1>🏆 Event Bingo Standings</h1>
-        <p class="subtitle">Live Board — Team A</p>
+        <p class="subtitle" id="subtitleText">Live Board — Team A</p>
+
+        <div class="team-selector">
+            <button class="team-btn active" id="btn-Team A" onclick="selectTeam('Team A')">Team A</button>
+            <button class="team-btn" id="btn-Team B" onclick="selectTeam('Team B')">Team B</button>
+        </div>
 
         <div class="controls-bar">
             <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">
@@ -170,10 +204,18 @@
     <div class="status" id="statusText">Loading board data...</div>
 
     <script>
-        // Direct Export CSV endpoints from Google Drive
-        const TEAM_A_BOARD_CSV_URL = "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=924603285";
-        const TEAM_A_CALC_CSV_URL = "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=66597238";
+        const TEAMS = {
+            "Team A": {
+                boardUrl: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=924603285",
+                calcUrl: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=66597238"
+            },
+            "Team B": {
+                boardUrl: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=190175458",
+                calcUrl: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=989777840"
+            }
+        };
 
+        let currentTeam = "Team A";
         const REFRESH_INTERVAL_SECS = 60;
         let countdownSecs = REFRESH_INTERVAL_SECS;
         let timerInterval = null;
@@ -209,7 +251,7 @@
             timerInterval = setInterval(() => {
                 countdownSecs--;
                 if (countdownSecs <= 0) {
-                    loadTeamABoard();
+                    loadBoard();
                 } else {
                     updateTimerDisplay();
                 }
@@ -223,12 +265,24 @@
             }
         }
 
-        async function manualRefresh() {
-            if (isFetching) return;
-            await loadTeamABoard();
+        async function selectTeam(teamName) {
+            if (currentTeam === teamName && !isFetching) return;
+            currentTeam = teamName;
+
+            document.querySelectorAll('.team-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.id === `btn-${teamName}`);
+            });
+
+            document.getElementById('subtitleText').innerText = `Live Board — ${teamName}`;
+            await loadBoard();
         }
 
-        async function loadTeamABoard() {
+        async function manualRefresh() {
+            if (isFetching) return;
+            await loadBoard();
+        }
+
+        async function loadBoard() {
             if (isFetching) return;
             isFetching = true;
 
@@ -239,16 +293,15 @@
 
             btn.disabled = true;
             btn.innerText = "⌛ Refreshing...";
-            status.innerText = "Fetching live Team A data...";
+            status.innerText = `Fetching live data for ${currentTeam}...`;
 
             try {
-                // Add timestamp query parameter to defeat browser/CDN caching
+                const config = TEAMS[currentTeam];
                 const cacheBuster = `&_cb=${Date.now()}`;
 
-                // Fetch Board Layout and Completion Statuses
                 const [boardRes, calcRes] = await Promise.all([
-                    fetch(TEAM_A_BOARD_CSV_URL + cacheBuster, { cache: "no-store" }),
-                    fetch(TEAM_A_CALC_CSV_URL + cacheBuster, { cache: "no-store" })
+                    fetch(config.boardUrl + cacheBuster, { cache: "no-store" }),
+                    fetch(config.calcUrl + cacheBuster, { cache: "no-store" })
                 ]);
 
                 if (!boardRes.ok || !calcRes.ok) {
@@ -269,7 +322,6 @@
                 boardRows.forEach((row, rIdx) => {
                     row.forEach((cell, cIdx) => {
                         const val = cell.trim();
-                        // Filter out headers, blank cells, and boolean values
                         if (val && !val.startsWith("Team") && val.toLowerCase() !== "false" && val.toLowerCase() !== "true") {
                             
                             let isDone = false;
@@ -284,7 +336,6 @@
                     });
                 });
 
-                // Render 25 tiles
                 tiles.slice(0, 25).forEach(tileObj => {
                     const tile = document.createElement('div');
                     tile.className = `bingo-tile ${tileObj.completed ? 'completed' : ''}`;
@@ -293,11 +344,11 @@
                 });
 
                 progress.innerText = `Progress: ${completedCount} / ${Math.min(tiles.length, 25)} Tiles Completed`;
-                status.innerText = `Live board synced. Last update: ${new Date().toLocaleTimeString()}`;
+                status.innerText = `Live board synced (${currentTeam}). Last update: ${new Date().toLocaleTimeString()}`;
 
             } catch (err) {
                 console.error("Board load error:", err);
-                status.innerText = "Error loading board data. Ensure Google Sheet sharing is 'Anyone with the link'.";
+                status.innerText = "Error loading board data. Check Google Sheet permissions.";
             } finally {
                 isFetching = false;
                 btn.disabled = false;
@@ -307,7 +358,7 @@
         }
 
         // Initial Load
-        loadTeamABoard();
+        loadBoard();
     </script>
 </body>
 </html>
