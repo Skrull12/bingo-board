@@ -28,7 +28,7 @@
 
         header {
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         h1 {
@@ -43,6 +43,13 @@
             color: #888;
             font-size: 1rem;
             margin: 0;
+        }
+
+        .progress-bar {
+            margin-top: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--gold-accent);
         }
 
         .bingo-grid {
@@ -69,12 +76,14 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.4);
             line-height: 1.3;
             word-break: break-word;
+            transition: all 0.3s ease;
         }
 
         .bingo-tile.completed {
             background-color: var(--completed-bg);
             border-color: var(--completed-border);
             color: #a3e635;
+            box-shadow: 0 0 12px rgba(46, 204, 113, 0.35);
         }
 
         .status {
@@ -89,6 +98,7 @@
     <header>
         <h1>🏆 Event Bingo Standings</h1>
         <p class="subtitle">Live Board — Team A</p>
+        <div class="progress-bar" id="progressCounter">Progress: -- / 25</div>
     </header>
 
     <div class="bingo-grid" id="bingoGrid">
@@ -98,7 +108,11 @@
     <div class="status" id="statusText">Loading board data...</div>
 
     <script>
-        const TEAM_A_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQoF1q_MAzJEkrLxHoiKKnlNUNrn54ULF6WXLDl1V4-RJxcTR0kO3r3d--ABZ7c-fX0ML_orATJM-Ab/pub?gid=924603285&single=true&output=csv";
+        // Board Tile Names CSV
+        const TEAM_A_BOARD_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQoF1q_MAzJEkrLxHoiKKnlNUNrn54ULF6WXLDl1V4-RJxcTR0kO3r3d--ABZ7c-fX0ML_orATJM-Ab/pub?gid=924603285&single=true&output=csv";
+        
+        // Paste your published Calc_Team A CSV link here:
+        const TEAM_A_CALC_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQoF1q_MAzJEkrLxHoiKKnlNUNrn54ULF6WXLDl1V4-RJxcTR0kO3r3d--ABZ7c-fX0ML_orATJM-Ab/pub?gid=66597238&single=true&output=csv";
 
         function parseCSV(text) {
             const lines = text.trim().split("\n");
@@ -125,47 +139,70 @@
         async function loadTeamABoard() {
             const grid = document.getElementById('bingoGrid');
             const status = document.getElementById('statusText');
+            const progress = document.getElementById('progressCounter');
+            
             grid.innerHTML = "";
             status.innerText = "Fetching live Team A data...";
 
             try {
-                const response = await fetch(TEAM_A_CSV_URL);
-                const csvData = await response.text();
-                const rows = parseCSV(csvData);
+                // Fetch Board Tile Names
+                const boardRes = await fetch(TEAM_A_BOARD_CSV_URL);
+                const boardText = await boardRes.text();
+                const boardRows = parseCSV(boardText);
 
+                // Fetch Completion States from Calc Tab (if configured)
+                let calcRows = [];
+                if (TEAM_A_CALC_CSV_URL && !TEAM_A_CALC_CSV_URL.includes("YOUR_CALC")) {
+                    try {
+                        const calcRes = await fetch(TEAM_A_CALC_CSV_URL);
+                        const calcText = await calcRes.text();
+                        calcRows = parseCSV(calcText);
+                    } catch (e) {
+                        console.warn("Could not fetch Calc tab data:", e);
+                    }
+                }
+
+                // Map grid cell by cell matching (Row x Col)
                 const tiles = [];
-                rows.forEach(row => {
-                    row.forEach(cell => {
+                let completedCount = 0;
+
+                boardRows.forEach((row, rIdx) => {
+                    row.forEach((cell, cIdx) => {
                         const val = cell.trim();
-                        // Exclude headers, blank cells, and boolean values
+                        // Ignore headers, empty cells, and naked booleans
                         if (val && !val.startsWith("Team") && val.toLowerCase() !== "false" && val.toLowerCase() !== "true") {
-                            if (!tiles.includes(val)) {
-                                tiles.push(val);
+                            
+                            // Check if corresponding cell in Calc tab is TRUE
+                            let isDone = false;
+                            if (calcRows[rIdx] && calcRows[rIdx][cIdx]) {
+                                const calcVal = calcRows[rIdx][cIdx].trim().toUpperCase();
+                                isDone = (calcVal === "TRUE" || calcVal === "1" || calcVal === "DONE");
                             }
+
+                            if (isDone) completedCount++;
+                            tiles.push({ name: val, completed: isDone });
                         }
                     });
                 });
 
-                // Render up to 25 tiles
-                tiles.slice(0, 25).forEach(tileText => {
+                // Render up to 25 tiles into 5x5 grid
+                tiles.slice(0, 25).forEach(tileObj => {
                     const tile = document.createElement('div');
-                    tile.className = 'bingo-tile';
-                    tile.innerText = tileText;
+                    tile.className = `bingo-tile ${tileObj.completed ? 'completed' : ''}`;
+                    tile.innerText = tileObj.name;
                     grid.appendChild(tile);
                 });
 
+                progress.innerText = `Progress: ${completedCount} / ${Math.min(tiles.length, 25)} Tiles Completed`;
                 status.innerText = `Live board synced. Last update: ${new Date().toLocaleTimeString()}`;
 
             } catch (err) {
                 console.error(err);
-                status.innerText = "Error loading board data. Verify Google Sheets CSV publication.";
+                status.innerText = "Error loading board data. Check CSV permissions.";
             }
         }
 
-        // Run on page load
         loadTeamABoard();
-
-        // Refresh every 60 seconds
         setInterval(loadTeamABoard, 60000);
     </script>
 </body>
