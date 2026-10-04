@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OSRS Bingo Event Boards</title>
+    <title>OSRS Bingo Event Hub</title>
     <style>
         :root {
             --bg-color: #0f1115;
@@ -11,8 +11,6 @@
             --border-color: #2e3440;
             --gold-accent: #d4af37;
             --text-color: #e5e9f0;
-            --completed-bg: #1e3a29;
-            --completed-border: #2ecc71;
             --btn-hover: #b59226;
             --team-a-color: #2ecc71;
             --team-b-color: #3498db;
@@ -29,64 +27,29 @@
             align-items: center;
         }
 
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
         header {
             text-align: center;
-            margin-bottom: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
-            width: 100%;
-            max-width: 950px;
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
         h1 {
             color: var(--gold-accent);
             margin: 0;
-            font-size: 2.2rem;
+            font-size: 2.3rem;
             text-transform: uppercase;
             letter-spacing: 2px;
-        }
-
-        /* Head-to-Head Team Race Bar */
-        .team-race-card {
-            width: 100%;
-            background-color: var(--card-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 12px;
-            padding: 14px 20px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-            box-sizing: border-box;
-        }
-
-        .race-bar-header {
-            display: flex;
-            justify-content: space-between;
-            font-weight: bold;
-            font-size: 1.05rem;
-            margin-bottom: 8px;
-        }
-
-        .race-header-a { color: var(--team-a-color); }
-        .race-header-b { color: var(--team-b-color); }
-
-        .race-bar-track {
-            height: 18px;
-            background-color: #0f1115;
-            border-radius: 9px;
-            display: flex;
-            overflow: hidden;
-            border: 1px solid var(--border-color);
-        }
-
-        .race-bar-fill-a {
-            background: linear-gradient(90deg, #27ae60, #2ecc71);
-            transition: width 0.5s ease;
-        }
-
-        .race-bar-fill-b {
-            background: linear-gradient(90deg, #2980b9, #3498db);
-            transition: width 0.5s ease;
         }
 
         .subtitle {
@@ -95,44 +58,80 @@
             margin: 0;
         }
 
-        .team-selector {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            margin-top: 5px;
-        }
-
-        .team-btn {
+        .card {
             background-color: var(--card-bg);
-            color: var(--text-color);
             border: 2px solid var(--border-color);
-            padding: 8px 20px;
-            font-size: 0.95rem;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+        }
+
+        h2 {
+            color: var(--gold-accent);
+            font-size: 1.25rem;
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Stacked Team Rows */
+        .team-rows-container {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .team-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .team-row-header {
+            display: flex;
+            justify-content: space-between;
             font-weight: bold;
+            font-size: 1.05rem;
+        }
+
+        .row-label-a { color: var(--team-a-color); }
+        .row-label-b { color: var(--team-b-color); }
+
+        .row-track {
+            height: 16px;
+            background-color: #0f1115;
             border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
         }
 
-        .team-btn:hover {
-            border-color: var(--gold-accent);
+        .row-fill-a {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            width: 0%;
+            transition: width 0.5s ease;
         }
 
-        .team-btn.active {
-            background-color: var(--gold-accent);
-            color: #0f1115;
-            border-color: var(--gold-accent);
+        .row-fill-b {
+            height: 100%;
+            background: linear-gradient(90deg, #2980b9, #3498db);
+            width: 0%;
+            transition: width 0.5s ease;
         }
 
+        /* Controls Bar */
         .controls-bar {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 15px;
-            margin-top: 5px;
             background-color: var(--card-bg);
-            padding: 8px 16px;
-            border-radius: 20px;
-            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
         }
 
         .refresh-btn {
@@ -142,140 +141,142 @@
             padding: 8px 16px;
             font-size: 0.9rem;
             font-weight: 700;
-            border-radius: 12px;
+            border-radius: 8px;
             cursor: pointer;
             transition: background-color 0.2s ease, transform 0.1s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
         }
 
-        .refresh-btn:hover {
-            background-color: var(--btn-hover);
-        }
-
-        .refresh-btn:active {
-            transform: scale(0.96);
-        }
-
-        .refresh-btn:disabled {
-            background-color: #555;
-            color: #aaa;
-            cursor: not-allowed;
-            transform: none;
-        }
+        .refresh-btn:hover { background-color: var(--btn-hover); }
+        .refresh-btn:active { transform: scale(0.96); }
+        .refresh-btn:disabled { background-color: #555; color: #aaa; cursor: not-allowed; }
 
         .timer-display {
             font-size: 0.88rem;
             color: #aaa;
             font-weight: 600;
-            min-width: 140px;
-            text-align: left;
         }
 
-        .progress-bar {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: var(--gold-accent);
-            margin-top: 5px;
-        }
-
-        .bingo-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 12px;
-            max-width: 950px;
+        /* Tables (MVP & Feed) */
+        table {
             width: 100%;
-            margin-top: 15px;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
         }
 
-        .bingo-tile {
-            background-color: var(--card-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            aspect-ratio: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 12px;
-            font-size: 0.9rem;
+        th, td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            color: var(--gold-accent);
             font-weight: 600;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-            line-height: 1.3;
-            word-break: break-word;
-            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
         }
 
-        .bingo-tile.completed {
-            background-color: var(--completed-bg);
-            border-color: var(--completed-border);
-            color: #a3e635;
-            box-shadow: 0 0 12px rgba(46, 204, 113, 0.35);
-        }
+        tr:last-child td { border-bottom: none; }
+
+        .team-tag-a { color: var(--team-a-color); font-weight: bold; }
+        .team-tag-b { color: var(--team-b-color); font-weight: bold; }
 
         .status {
-            margin-top: 25px;
+            text-align: center;
             font-size: 0.85rem;
             color: #888;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>🏆 Event Bingo Standings</h1>
+    <div class="container">
+        <header>
+            <h1>🏆 OSRS Event Hub</h1>
+            <p class="subtitle">Live Clan Bingo Analytics & Standing Feed</p>
+        </header>
 
-        <!-- Head-to-Head Race Bar -->
-        <div class="team-race-card">
-            <div class="race-bar-header">
-                <span class="race-header-a">⚔️ Team A: <strong id="teamAScore">0</strong>/25</span>
-                <span class="race-header-b">⚔️ Team B: <strong id="teamBScore">0</strong>/25</span>
-            </div>
-            <div class="race-bar-track">
-                <div class="race-bar-fill-a" id="barFillA" style="width: 50%;"></div>
-                <div class="race-bar-fill-b" id="barFillB" style="width: 50%;"></div>
-            </div>
-        </div>
-
-        <p class="subtitle" id="subtitleText">Live Board — Team A</p>
-
-        <div class="team-selector">
-            <button class="team-btn active" id="btn-Team A" onclick="selectTeam('Team A')">Team A</button>
-            <button class="team-btn" id="btn-Team B" onclick="selectTeam('Team B')">Team B</button>
-        </div>
-
+        <!-- Control Bar -->
         <div class="controls-bar">
-            <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">
-                🔄 Refresh Board
-            </button>
+            <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">🔄 Refresh Hub Data</button>
             <span class="timer-display" id="countdownTimer">Auto-refresh: 60s</span>
         </div>
 
-        <div class="progress-bar" id="progressCounter">Progress: -- / 25</div>
-    </header>
+        <!-- Team Leaderboard / Stacked Progress Rows -->
+        <div class="card">
+            <h2>⚔️️ Team Standings Race</h2>
+            <div class="team-rows-container">
+                <div class="team-row">
+                    <div class="team-row-header">
+                        <span class="row-label-a">Team A Progress</span>
+                        <span class="row-label-a"><strong id="teamAScore">0</strong> / 25 Tiles</span>
+                    </div>
+                    <div class="row-track">
+                        <div class="row-fill-a" id="barFillA"></div>
+                    </div>
+                </div>
 
-    <div class="bingo-grid" id="bingoGrid">
-        <!-- 5x5 Grid rendered dynamically -->
+                <div class="team-row">
+                    <div class="team-row-header">
+                        <span class="row-label-b">Team B Progress</span>
+                        <span class="row-label-b"><strong id="teamBScore">0</strong> / 25 Tiles</span>
+                    </div>
+                    <div class="row-track">
+                        <div class="row-fill-b" id="barFillB"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MVP Player Leaderboard -->
+        <div class="card">
+            <h2>🥇 Player MVP Leaderboard</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Player</th>
+                        <th>Team</th>
+                        <th>Approved Drops</th>
+                    </tr>
+                </thead>
+                <tbody id="mvpTableBody">
+                    <tr><td colspan="4" style="text-align: center; color: #777;">Loading MVP standings...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Recent Drops Live Activity Feed -->
+        <div class="card">
+            <h2>📜 Recent Drop Activity Feed</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Team</th>
+                        <th>Player</th>
+                        <th>Item Dropped</th>
+                    </tr>
+                </thead>
+                <tbody id="dropLogTableBody">
+                    <tr><td colspan="4" style="text-align: center; color: #777;">Loading live feed...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="status" id="statusText">Initializing live hub feed...</div>
     </div>
 
-    <div class="status" id="statusText">Loading board data...</div>
-
     <script>
-        const SUMMARY_CSV_URL = "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=2012148001";
-
-        const TEAMS = {
-            "Team A": {
-                boardUrl: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=924603285",
-                calcUrl: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=66597238"
-            },
-            "Team B": {
-                boardUrl: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=190175458",
-                calcUrl: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=989777840"
-            }
+        // Google Sheet CSV Endpoints
+        const SOURCES = {
+            calcA: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=66597238",
+            calcB: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=989777840",
+            dropLog: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=0" // Adjust gid if Drop_Log tab differs
         };
 
-        let currentTeam = "Team A";
         const REFRESH_INTERVAL_SECS = 60;
         let countdownSecs = REFRESH_INTERVAL_SECS;
         let timerInterval = null;
@@ -311,7 +312,7 @@
             timerInterval = setInterval(() => {
                 countdownSecs--;
                 if (countdownSecs <= 0) {
-                    loadBoard();
+                    loadHubData();
                 } else {
                     updateTimerDisplay();
                 }
@@ -325,129 +326,142 @@
             }
         }
 
-        async function selectTeam(teamName) {
-            if (currentTeam === teamName && !isFetching) return;
-            currentTeam = teamName;
-
-            document.querySelectorAll('.team-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.id === `btn-${teamName}`);
-            });
-
-            document.getElementById('subtitleText').innerText = `Live Board — ${teamName}`;
-            await loadBoard();
-        }
-
         async function manualRefresh() {
             if (isFetching) return;
-            await loadBoard();
+            await loadHubData();
         }
 
-        async function loadBoard() {
+        async function loadHubData() {
             if (isFetching) return;
             isFetching = true;
 
-            const grid = document.getElementById('bingoGrid');
             const status = document.getElementById('statusText');
-            const progress = document.getElementById('progressCounter');
             const btn = document.getElementById('refreshBtn');
 
             btn.disabled = true;
-            btn.innerText = "⌛ Refreshing...";
-            status.innerText = `Fetching live data for ${currentTeam}...`;
+            btn.innerText = "⌛ Updating...";
+            status.innerText = "Syncing with live Google Sheet...";
 
             try {
-                const config = TEAMS[currentTeam];
                 const cacheBuster = `&_cb=${Date.now()}`;
 
-                // Fetch Summary, Active Board, and Active Calc CSVs concurrently
-                const [summaryRes, boardRes, calcRes] = await Promise.all([
-                    fetch(SUMMARY_CSV_URL + cacheBuster, { cache: "no-store" }).catch(() => null),
-                    fetch(config.boardUrl + cacheBuster, { cache: "no-store" }),
-                    fetch(config.calcUrl + cacheBuster, { cache: "no-store" })
+                const [calcARes, calcBRes, dropLogRes] = await Promise.all([
+                    fetch(SOURCES.calcA + cacheBuster, { cache: "no-store" }).catch(() => null),
+                    fetch(SOURCES.calcB + cacheBuster, { cache: "no-store" }).catch(() => null),
+                    fetch(SOURCES.dropLog + cacheBuster, { cache: "no-store" }).catch(() => null)
                 ]);
 
-                if (!boardRes.ok || !calcRes.ok) {
-                    throw new Error("CSV network response was not ok");
-                }
-
-                // Parse Board and Calc data
-                const boardText = await boardRes.text();
-                const calcText = await calcRes.text();
-                const boardRows = parseCSV(boardText);
-                const calcRows = parseCSV(calcText);
-
-                grid.innerHTML = "";
-
-                const tiles = [];
-                let completedCount = 0;
-
-                boardRows.forEach((row, rIdx) => {
-                    row.forEach((cell, cIdx) => {
-                        const val = cell.trim();
-                        if (val && !val.startsWith("Team") && val.toLowerCase() !== "false" && val.toLowerCase() !== "true") {
-                            
-                            let isDone = false;
-                            if (calcRows[rIdx] && calcRows[rIdx][cIdx] !== undefined) {
-                                const calcVal = String(calcRows[rIdx][cIdx]).trim().toUpperCase();
-                                isDone = (calcVal === "TRUE" || calcVal === "1" || calcVal === "DONE");
-                            }
-
-                            if (isDone) completedCount++;
-                            tiles.push({ name: val, completed: isDone });
-                        }
-                    });
-                });
-
-                // Render 25 Tiles
-                tiles.slice(0, 25).forEach(tileObj => {
-                    const tile = document.createElement('div');
-                    tile.className = `bingo-tile ${tileObj.completed ? 'completed' : ''}`;
-                    tile.innerText = tileObj.name;
-                    grid.appendChild(tile);
-                });
-
-                progress.innerText = `Progress: ${completedCount} / ${Math.min(tiles.length, 25)} Tiles Completed`;
-
-                // Update Race Bar using Summary Tab (or fallback to active team count)
-                let scoreA = currentTeam === 'Team A' ? completedCount : 0;
-                let scoreB = currentTeam === 'Team B' ? completedCount : 0;
-
-                if (summaryRes && summaryRes.ok) {
-                    try {
-                        const summaryText = await summaryRes.text();
-                        const summaryRows = parseCSV(summaryText);
-                        // Extract numeric values from Summary tab
-                        summaryRows.forEach(row => {
-                            if (row[0] && row[0].includes("Team A")) scoreA = parseInt(row[1]) || scoreA;
-                            if (row[0] && row[0].includes("Team B")) scoreB = parseInt(row[1]) || scoreB;
+                // 1. Process Team Scores from Calc Matrices (Dividing by 2 for double-column layout)
+                function countTeamScore(text) {
+                    if (!text) return 0;
+                    const rows = parseCSV(text);
+                    let count = 0;
+                    rows.forEach(row => {
+                        row.forEach(cell => {
+                            const val = String(cell).trim().toUpperCase();
+                            if (val === "TRUE" || val === "1" || val === "DONE") count++;
                         });
-                    } catch (e) {
-                        console.warn("Could not parse Summary CSV:", e);
-                    }
+                    });
+                    return Math.floor(count / 2);
                 }
+
+                const scoreA = calcARes && calcARes.ok ? countTeamScore(await calcARes.text()) : 0;
+                const scoreB = calcBRes && calcBRes.ok ? countTeamScore(await calcBRes.text()) : 0;
 
                 document.getElementById('teamAScore').innerText = scoreA;
                 document.getElementById('teamBScore').innerText = scoreB;
+                document.getElementById('barFillA').style.width = `${(scoreA / 25) * 100}%`;
+                document.getElementById('barFillB').style.width = `${(scoreB / 25) * 100}%`;
 
-                const combined = (scoreA + scoreB) || 1;
-                document.getElementById('barFillA').style.width = `${(scoreA / combined) * 100}%`;
-                document.getElementById('barFillB').style.width = `${(scoreB / combined) * 100}%`;
+                // 2. Process Drop Log Data for MVP & Recent Feed
+                if (dropLogRes && dropLogRes.ok) {
+                    const logText = await dropLogRes.text();
+                    const logRows = parseCSV(logText);
+                    
+                    // Assuming headers: Date (0), Team Name (1), Item Name (2), Player (3), Discord ID (4), Receipt ID (5)
+                    const dataRows = logRows.slice(1).filter(r => r.length >= 4 && r[2]); 
 
-                status.innerText = `Live board synced (${currentTeam}). Last update: ${new Date().toLocaleTimeString()}`;
+                    // Build Recent Feed (Top 5 newest)
+                    const recentTableBody = document.getElementById('dropLogTableBody');
+                    recentTableBody.innerHTML = "";
+
+                    const sortedByDate = [...dataRows].reverse().slice(0, 5);
+                    if (sortedByDate.length === 0) {
+                        recentTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">No drops logged yet.</td></tr>`;
+                    } else {
+                        sortedByDate.forEach(row => {
+                            const dateStr = row[0] || "";
+                            const teamName = row[1] || "";
+                            const itemName = row[2] || "";
+                            const player = row[3] || "";
+                            const teamClass = teamName.includes("B") ? "team-tag-b" : "team-tag-a";
+
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td style="color: #aaa; font-size: 0.85rem;">${dateStr}</td>
+                                <td class="${teamClass}">${teamName}</td>
+                                <td>${player}</td>
+                                <td style="color: var(--gold-accent); font-weight: 600;">${itemName}</td>
+                            `;
+                            recentTableBody.appendChild(tr);
+                        });
+                    }
+
+                    // Build MVP Player Leaderboard
+                    const playerCounts = {};
+                    dataRows.forEach(row => {
+                        const player = row[3];
+                        const team = row[1] || "Team A";
+                        if (player) {
+                            if (!playerCounts[player]) {
+                                playerCounts[player] = { count: 0, team: team };
+                            }
+                            playerCounts[player].count++;
+                        }
+                    });
+
+                    const sortedMvp = Object.entries(playerCounts)
+                        .map(([player, info]) => ({ player, team: info.team, count: info.count }))
+                        .sort((a, b) => b.count - a.count)
+                        .slice(0, 5);
+
+                    const mvpTableBody = document.getElementById('mvpTableBody');
+                    mvpTableBody.innerHTML = "";
+
+                    if (sortedMvp.length === 0) {
+                        mvpTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">No MVP data available.</td></tr>`;
+                    } else {
+                        sortedMvp.forEach((mvp, index) => {
+                            const teamClass = mvp.team.includes("B") ? "team-tag-b" : "team-tag-a";
+                            const medal = index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `#${index + 1}`;
+
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td style="font-weight: bold;">${medal}</td>
+                                <td style="font-weight: 600;">${mvp.player}</td>
+                                <td class="${teamClass}">${mvp.team}</td>
+                                <td style="color: var(--gold-accent); font-weight: bold;">${mvp.count}</td>
+                            `;
+                            mvpTableBody.appendChild(tr);
+                        });
+                    }
+                }
+
+                status.innerText = `Hub data successfully synchronized. Last update: ${new Date().toLocaleTimeString()}`;
 
             } catch (err) {
-                console.error("Board load error:", err);
-                status.innerText = "Error loading board data. Check Google Sheet permissions.";
+                console.error("Hub load error:", err);
+                status.innerText = "Error loading hub feed. Check Google Sheet publishing status.";
             } finally {
                 isFetching = false;
                 btn.disabled = false;
-                btn.innerText = "🔄 Refresh Board";
+                btn.innerText = "🔄 Refresh Hub Data";
                 startTimer();
             }
         }
 
-        // Initial Load
-        loadBoard();
+        // Initial Load on Page Open
+        loadHubData();
     </script>
 </body>
 </html>
