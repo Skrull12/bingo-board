@@ -14,6 +14,8 @@
             --btn-hover: #b59226;
             --team-a-color: #2ecc71;
             --team-b-color: #3498db;
+            --completed-bg: #1e3a29;
+            --completed-border: #2ecc71;
         }
 
         body {
@@ -29,10 +31,11 @@
 
         .container {
             width: 100%;
-            max-width: 900px;
+            max-width: 950px;
             display: flex;
             flex-direction: column;
             gap: 20px;
+            align-items: center;
         }
 
         header {
@@ -41,7 +44,7 @@
             flex-direction: column;
             align-items: center;
             gap: 10px;
-            margin-bottom: 10px;
+            width: 100%;
         }
 
         h1 {
@@ -58,6 +61,50 @@
             margin: 0;
         }
 
+        /* Navigation Tab Buttons */
+        .nav-tabs {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 5px;
+        }
+
+        .nav-btn {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border: 2px solid var(--border-color);
+            padding: 10px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            border-color: var(--gold-accent);
+            color: var(--gold-accent);
+        }
+
+        .nav-btn.active {
+            background-color: var(--gold-accent);
+            color: #0f1115;
+            border-color: var(--gold-accent);
+        }
+
+        /* View Sections (Tab Switcher) */
+        .view-section {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .view-section.active {
+            display: flex;
+        }
+
         .card {
             background-color: var(--card-bg);
             border: 2px solid var(--border-color);
@@ -65,6 +112,7 @@
             padding: 20px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.5);
             box-sizing: border-box;
+            width: 100%;
         }
 
         h2 {
@@ -132,6 +180,8 @@
             padding: 10px 20px;
             border-radius: 12px;
             border: 2px solid var(--border-color);
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .refresh-btn {
@@ -156,7 +206,40 @@
             font-weight: 600;
         }
 
-        /* Tables (MVP & Feed) */
+        /* Bingo Grids */
+        .bingo-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .bingo-tile {
+            background-color: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            line-height: 1.3;
+            word-break: break-word;
+        }
+
+        .bingo-tile.completed {
+            background-color: var(--completed-bg);
+            border-color: var(--completed-border);
+            color: #a3e635;
+            box-shadow: 0 0 12px rgba(46, 204, 113, 0.35);
+        }
+
+        /* Tables */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -187,6 +270,7 @@
             font-size: 0.85rem;
             color: #888;
             margin-top: 10px;
+            width: 100%;
         }
     </style>
 </head>
@@ -198,85 +282,118 @@
             <p class="subtitle">Live Clan Bingo Analytics & Standing Feed</p>
         </header>
 
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-btn active" id="tab-hub" onclick="switchView('hub')">📊 Hub Standings</button>
+            <button class="nav-btn" id="tab-teamA" onclick="switchView('teamA')">🟢 Team A Board</button>
+            <button class="nav-btn" id="tab-teamB" onclick="switchView('teamB')">🔵 Team B Board</button>
+        </div>
+
         <!-- Control Bar -->
         <div class="controls-bar">
-            <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">🔄 Refresh Hub Data</button>
+            <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">🔄 Refresh All Data</button>
             <span class="timer-display" id="countdownTimer">Auto-refresh: 60s</span>
         </div>
 
-        <!-- Team Leaderboard / Stacked Progress Rows -->
-        <div class="card">
-            <h2>⚔️️ Team Standings Race</h2>
-            <div class="team-rows-container">
-                <div class="team-row">
-                    <div class="team-row-header">
-                        <span class="row-label-a">Team A Progress</span>
-                        <span class="row-label-a"><strong id="teamAScore">0</strong> / 25 Tiles</span>
+        <!-- ================= VIEW 1: HUB STANDINGS ================= -->
+        <div class="view-section active" id="view-hub">
+            <!-- Team Leaderboard / Stacked Progress Rows -->
+            <div class="card">
+                <h2>⚔ Team Standings Race</h2>
+                <div class="team-rows-container">
+                    <div class="team-row">
+                        <div class="team-row-header">
+                            <span class="row-label-a">Team A Progress</span>
+                            <span class="row-label-a"><strong id="teamAScore">0</strong> / 25 Tiles</span>
+                        </div>
+                        <div class="row-track">
+                            <div class="row-fill-a" id="barFillA"></div>
+                        </div>
                     </div>
-                    <div class="row-track">
-                        <div class="row-fill-a" id="barFillA"></div>
+
+                    <div class="team-row">
+                        <div class="team-row-header">
+                            <span class="row-label-b">Team B Progress</span>
+                            <span class="row-label-b"><strong id="teamBScore">0</strong> / 25 Tiles</span>
+                        </div>
+                        <div class="row-track">
+                            <div class="row-fill-b" id="barFillB"></div>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="team-row">
-                    <div class="team-row-header">
-                        <span class="row-label-b">Team B Progress</span>
-                        <span class="row-label-b"><strong id="teamBScore">0</strong> / 25 Tiles</span>
-                    </div>
-                    <div class="row-track">
-                        <div class="row-fill-b" id="barFillB"></div>
-                    </div>
+            <!-- MVP Player Leaderboard -->
+            <div class="card">
+                <h2>🥇 Player MVP Leaderboard</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Approved Drops</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mvpTableBody">
+                        <tr><td colspan="4" style="text-align: center; color: #777;">Loading MVP standings...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Recent Drops Live Activity Feed -->
+            <div class="card">
+                <h2>📜 Recent Drop Activity Feed</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Team</th>
+                            <th>Player</th>
+                            <th>Item Dropped</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dropLogTableBody">
+                        <tr><td colspan="4" style="text-align: center; color: #777;">Loading live feed...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 2: TEAM A BOARD ================= -->
+        <div class="view-section" id="view-teamA">
+            <div class="card" style="text-align: center;">
+                <h2 style="color: var(--team-a-color);">Team A Bingo Grid</h2>
+                <div style="font-size: 1.1font; font-weight: bold; color: var(--gold-accent); margin-bottom: 10px;" id="progressCounterA">Progress: -- / 25 Tiles Completed</div>
+                <div class="bingo-grid" id="bingoGridA">
+                    <!-- Team A Grid Rendered Here -->
                 </div>
             </div>
         </div>
 
-        <!-- MVP Player Leaderboard -->
-        <div class="card">
-            <h2>🥇 Player MVP Leaderboard</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Player</th>
-                        <th>Team</th>
-                        <th>Approved Drops</th>
-                    </tr>
-                </thead>
-                <tbody id="mvpTableBody">
-                    <tr><td colspan="4" style="text-align: center; color: #777;">Loading MVP standings...</td></tr>
-                </tbody>
-            </table>
+        <!-- ================= VIEW 3: TEAM B BOARD ================= -->
+        <div class="view-section" id="view-teamB">
+            <div class="card" style="text-align: center;">
+                <h2 style="color: var(--team-b-color);">Team B Bingo Grid</h2>
+                <div style="font-size: 1.1font; font-weight: bold; color: var(--gold-accent); margin-bottom: 10px;" id="progressCounterB">Progress: -- / 25 Tiles Completed</div>
+                <div class="bingo-grid" id="bingoGridB">
+                    <!-- Team B Grid Rendered Here -->
+                </div>
+            </div>
         </div>
 
-        <!-- Recent Drops Live Activity Feed -->
-        <div class="card">
-            <h2>📜 Recent Drop Activity Feed</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Time</th>
-                        <th>Team</th>
-                        <th>Player</th>
-                        <th>Item Dropped</th>
-                    </tr>
-                </thead>
-                <tbody id="dropLogTableBody">
-                    <tr><td colspan="4" style="text-align: center; color: #777;">Loading live feed...</td></tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="status" id="statusText">Initializing live hub feed...</div>
+        <div class="status" id="statusText">Initializing live event sync...</div>
     </div>
 
     <script>
-        // Google Sheet CSV Endpoints
         const SOURCES = {
+            board: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=190175458",
             calcA: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=66597238",
             calcB: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=989777840",
-            dropLog: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=0" // Adjust gid if Drop_Log tab differs
+            dropLog: "https://docs.google.com/spreadsheets/d/1O8mewqSVtFMFYOdMLWOu7wI8DIyuAc6tlh064kD_UYc/export?format=csv&gid=2088869849"
         };
 
+        let currentTab = "hub";
         const REFRESH_INTERVAL_SECS = 60;
         let countdownSecs = REFRESH_INTERVAL_SECS;
         let timerInterval = null;
@@ -304,6 +421,23 @@
             });
         }
 
+        function switchView(tabName) {
+            currentTab = tabName;
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+
+            if (tabName === 'hub') {
+                document.getElementById('tab-hub').classList.add('active');
+                document.getElementById('view-hub').classList.add('active');
+            } else if (tabName === 'teamA') {
+                document.getElementById('tab-teamA').classList.add('active');
+                document.getElementById('view-teamA').classList.add('active');
+            } else if (tabName === 'teamB') {
+                document.getElementById('tab-teamB').classList.add('active');
+                document.getElementById('view-teamB').classList.add('active');
+            }
+        }
+
         function startTimer() {
             clearInterval(timerInterval);
             countdownSecs = REFRESH_INTERVAL_SECS;
@@ -312,7 +446,7 @@
             timerInterval = setInterval(() => {
                 countdownSecs--;
                 if (countdownSecs <= 0) {
-                    loadHubData();
+                    loadAllData();
                 } else {
                     updateTimerDisplay();
                 }
@@ -328,10 +462,10 @@
 
         async function manualRefresh() {
             if (isFetching) return;
-            await loadHubData();
+            await loadAllData();
         }
 
-        async function loadHubData() {
+        async function loadAllData() {
             if (isFetching) return;
             isFetching = true;
 
@@ -343,15 +477,16 @@
             status.innerText = "Syncing with live Google Sheet...";
 
             try {
-                const cacheBuster = `&_cb=${Date.now()}`;
+                const cb = `&_cb=${Date.now()}`;
 
-                const [calcARes, calcBRes, dropLogRes] = await Promise.all([
-                    fetch(SOURCES.calcA + cacheBuster, { cache: "no-store" }).catch(() => null),
-                    fetch(SOURCES.calcB + cacheBuster, { cache: "no-store" }).catch(() => null),
-                    fetch(SOURCES.dropLog + cacheBuster, { cache: "no-store" }).catch(() => null)
+                const [boardRes, calcARes, calcBRes, dropLogRes] = await Promise.all([
+                    fetch(SOURCES.board + cb).catch(() => null),
+                    fetch(SOURCES.calcA + cb).catch(() => null),
+                    fetch(SOURCES.calcB + cb).catch(() => null),
+                    fetch(SOURCES.dropLog + cb).catch(() => null)
                 ]);
 
-                // 1. Process Team Scores from Calc Matrices (Dividing by 2 for double-column layout)
+                // Helper to count score matrix
                 function countTeamScore(text) {
                     if (!text) return 0;
                     const rows = parseCSV(text);
@@ -368,24 +503,90 @@
                 const scoreA = calcARes && calcARes.ok ? countTeamScore(await calcARes.text()) : 0;
                 const scoreB = calcBRes && calcBRes.ok ? countTeamScore(await calcBRes.text()) : 0;
 
+                // Update Hub Progress
                 document.getElementById('teamAScore').innerText = scoreA;
                 document.getElementById('teamBScore').innerText = scoreB;
                 document.getElementById('barFillA').style.width = `${(scoreA / 25) * 100}%`;
                 document.getElementById('barFillB').style.width = `${(scoreB / 25) * 100}%`;
 
-                // 2. Process Drop Log Data for MVP & Recent Feed
-                if (dropLogRes && dropLogRes.ok) {
-                    const logText = await dropLogRes.text();
-                    const logRows = parseCSV(logText);
-                    
-                    // Assuming headers: Date (0), Team Name (1), Item Name (2), Player (3), Discord ID (4), Receipt ID (5)
-                    const dataRows = logRows.slice(1).filter(r => r.length >= 4 && r[2]); 
+                // Render Team A Board
+                if (boardRes && calcARes) {
+                    const boardRows = parseCSV(await boardRes.text());
+                    const calcARows = parseCSV(await calcARes.text());
+                    const gridA = document.getElementById('bingoGridA');
+                    gridA.innerHTML = "";
+                    let aCount = 0;
+                    const tilesA = [];
 
-                    // Build Recent Feed (Top 5 newest)
+                    boardRows.forEach((row, rIdx) => {
+                        for (let cIdx = 0; cIdx < row.length; cIdx += 2) {
+                            const val = row[cIdx] ? row[cIdx].trim() : "";
+                            if (val && !val.startsWith("Team") && val.toLowerCase() !== "false" && val.toLowerCase() !== "true") {
+                                let isDone = false;
+                                if (calcARows[rIdx]) {
+                                    const c1 = String(calcARows[rIdx][cIdx] || "").trim().toUpperCase();
+                                    const c2 = String(calcARows[rIdx][cIdx+1] || "").trim().toUpperCase();
+                                    isDone = (c1 === "TRUE" || c1 === "1" || c1 === "DONE" || c2 === "TRUE" || c2 === "1" || c2 === "DONE");
+                                }
+                                if (isDone) aCount++;
+                                tilesA.push({ name: val, completed: isDone });
+                            }
+                        }
+                    });
+
+                    tilesA.slice(0, 25).forEach(t => {
+                        const tile = document.createElement('div');
+                        tile.className = `bingo-tile ${t.completed ? 'completed' : ''}`;
+                        tile.innerText = t.name;
+                        gridA.appendChild(tile);
+                    });
+                    document.getElementById('progressCounterA').innerText = `Progress: ${aCount} / ${Math.min(tilesA.length, 25)} Tiles Completed`;
+                }
+
+                // Render Team B Board
+                if (boardRes && calcBRes) {
+                    const boardRows = parseCSV(await boardRes.text());
+                    const calcBRows = parseCSV(await calcBRes.text());
+                    const gridB = document.getElementById('bingoGridB');
+                    gridB.innerHTML = "";
+                    let bCount = 0;
+                    const tilesB = [];
+
+                    boardRows.forEach((row, rIdx) => {
+                        for (let cIdx = 0; cIdx < row.length; cIdx += 2) {
+                            const val = row[cIdx] ? row[cIdx].trim() : "";
+                            if (val && !val.startsWith("Team") && val.toLowerCase() !== "false" && val.toLowerCase() !== "true") {
+                                let isDone = false;
+                                if (calcBRows[rIdx]) {
+                                    const c1 = String(calcBRows[rIdx][cIdx] || "").trim().toUpperCase();
+                                    const c2 = String(calcBRows[rIdx][cIdx+1] || "").trim().toUpperCase();
+                                    isDone = (c1 === "TRUE" || c1 === "1" || c1 === "DONE" || c2 === "TRUE" || c2 === "1" || c2 === "DONE");
+                                }
+                                if (isDone) bCount++;
+                                tilesB.push({ name: val, completed: isDone });
+                            }
+                        }
+                    });
+
+                    tilesB.slice(0, 25).forEach(t => {
+                        const tile = document.createElement('div');
+                        tile.className = `bingo-tile ${t.completed ? 'completed' : ''}`;
+                        tile.innerText = t.name;
+                        gridB.appendChild(tile);
+                    });
+                    document.getElementById('progressCounterB').innerText = `Progress: ${bCount} / ${Math.min(tilesB.length, 25)} Tiles Completed`;
+                }
+
+                // Process Drop Log for MVP & Feed
+                if (dropLogRes && dropLogRes.ok) {
+                    const logRows = parseCSV(await dropLogRes.text());
+                    const dataRows = logRows.slice(1).filter(r => r.length >= 4 && r[2]);
+
+                    // Recent Feed
                     const recentTableBody = document.getElementById('dropLogTableBody');
                     recentTableBody.innerHTML = "";
-
                     const sortedByDate = [...dataRows].reverse().slice(0, 5);
+                    
                     if (sortedByDate.length === 0) {
                         recentTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">No drops logged yet.</td></tr>`;
                     } else {
@@ -407,15 +608,13 @@
                         });
                     }
 
-                    // Build MVP Player Leaderboard
+                    // MVP Leaderboard
                     const playerCounts = {};
                     dataRows.forEach(row => {
                         const player = row[3];
                         const team = row[1] || "Team A";
                         if (player) {
-                            if (!playerCounts[player]) {
-                                playerCounts[player] = { count: 0, team: team };
-                            }
+                            if (!playerCounts[player]) playerCounts[player] = { count: 0, team: team };
                             playerCounts[player].count++;
                         }
                     });
@@ -447,21 +646,21 @@
                     }
                 }
 
-                status.innerText = `Hub data successfully synchronized. Last update: ${new Date().toLocaleTimeString()}`;
+                status.innerText = `All event data synced successfully. Last update: ${new Date().toLocaleTimeString()}`;
 
             } catch (err) {
-                console.error("Hub load error:", err);
-                status.innerText = "Error loading hub feed. Check Google Sheet publishing status.";
+                console.error("Sync error:", err);
+                status.innerText = "Error syncing data. Check Google Sheet permissions.";
             } finally {
                 isFetching = false;
                 btn.disabled = false;
-                btn.innerText = "🔄 Refresh Hub Data";
+                btn.innerText = "🔄 Refresh All Data";
                 startTimer();
             }
         }
 
-        // Initial Load on Page Open
-        loadHubData();
+        // Initial Load
+        loadAllData();
     </script>
 </body>
 </html>
