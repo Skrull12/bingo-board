@@ -13,6 +13,7 @@
             --text-color: #e5e9f0;
             --completed-bg: #1e3a29;
             --completed-border: #2ecc71;
+            --btn-hover: #b59226;
         }
 
         body {
@@ -29,11 +30,15 @@
         header {
             text-align: center;
             margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
         }
 
         h1 {
             color: var(--gold-accent);
-            margin: 0 0 8px 0;
+            margin: 0;
             font-size: 2.2rem;
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -45,11 +50,60 @@
             margin: 0;
         }
 
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 5px;
+            background-color: var(--card-bg);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .refresh-btn {
+            background-color: var(--gold-accent);
+            color: #0f1115;
+            border: none;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .refresh-btn:hover {
+            background-color: var(--btn-hover);
+        }
+
+        .refresh-btn:active {
+            transform: scale(0.96);
+        }
+
+        .refresh-btn:disabled {
+            background-color: #555;
+            color: #aaa;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .timer-display {
+            font-size: 0.88rem;
+            color: #aaa;
+            font-weight: 600;
+            min-width: 140px;
+            text-align: left;
+        }
+
         .progress-bar {
-            margin-top: 10px;
             font-size: 1.1rem;
             font-weight: bold;
             color: var(--gold-accent);
+            margin-top: 5px;
         }
 
         .bingo-grid {
@@ -58,7 +112,7 @@
             gap: 12px;
             max-width: 950px;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 15px;
         }
 
         .bingo-tile {
@@ -98,6 +152,14 @@
     <header>
         <h1>🏆 Event Bingo Standings</h1>
         <p class="subtitle">Live Board — Team A</p>
+
+        <div class="controls-bar">
+            <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">
+                🔄 Refresh Board
+            </button>
+            <span class="timer-display" id="countdownTimer">Auto-refresh: 60s</span>
+        </div>
+
         <div class="progress-bar" id="progressCounter">Progress: -- / 25</div>
     </header>
 
@@ -111,8 +173,13 @@
         // Board Tile Names CSV
         const TEAM_A_BOARD_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQoF1q_MAzJEkrLxHoiKKnlNUNrn54ULF6WXLDl1V4-RJxcTR0kO3r3d--ABZ7c-fX0ML_orATJM-Ab/pub?gid=924603285&single=true&output=csv";
         
-        // Paste your published Calc_Team A CSV link here:
-        const TEAM_A_CALC_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQoF1q_MAzJEkrLxHoiKKnlNUNrn54ULF6WXLDl1V4-RJxcTR0kO3r3d--ABZ7c-fX0ML_orATJM-Ab/pub?gid=66597238&single=true&output=csv";
+        // Published Calc_Team A CSV Link
+        const TEAM_A_CALC_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQoF1q_MAzJEkrLxHoiKKnlNUNrn54ULF6WXLDl1V4-RJxcTR0kO3r3d--ABZ7c-fX0ML_orATJM-Ab/pubhtml?gid=66597238&single=true";
+
+        const REFRESH_INTERVAL_SECS = 60;
+        let countdownSecs = REFRESH_INTERVAL_SECS;
+        let timerInterval = null;
+        let isFetching = false;
 
         function parseCSV(text) {
             const lines = text.trim().split("\n");
@@ -136,31 +203,65 @@
             });
         }
 
+        function startTimer() {
+            clearInterval(timerInterval);
+            countdownSecs = REFRESH_INTERVAL_SECS;
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                countdownSecs--;
+                if (countdownSecs <= 0) {
+                    loadTeamABoard();
+                } else {
+                    updateTimerDisplay();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const timerElem = document.getElementById('countdownTimer');
+            if (timerElem) {
+                timerElem.innerText = `Auto-refresh: ${countdownSecs}s`;
+            }
+        }
+
+        async function manualRefresh() {
+            if (isFetching) return;
+            await loadTeamABoard();
+        }
+
         async function loadTeamABoard() {
+            if (isFetching) return;
+            isFetching = true;
+
             const grid = document.getElementById('bingoGrid');
             const status = document.getElementById('statusText');
             const progress = document.getElementById('progressCounter');
-            
-            grid.innerHTML = "";
+            const btn = document.getElementById('refreshBtn');
+
+            btn.disabled = true;
+            btn.innerText = "⌛ Refreshing...";
             status.innerText = "Fetching live Team A data...";
 
             try {
-                // Fetch Board Tile Names
-                const boardRes = await fetch(TEAM_A_BOARD_CSV_URL);
+                // Fetch Board Tile Names with cache-busting
+                const boardRes = await fetch(TEAM_A_BOARD_CSV_URL, { cache: "no-store" });
                 const boardText = await boardRes.text();
                 const boardRows = parseCSV(boardText);
 
-                // Fetch Completion States from Calc Tab (if configured)
+                // Fetch Completion States from Calc Tab
                 let calcRows = [];
                 if (TEAM_A_CALC_CSV_URL && !TEAM_A_CALC_CSV_URL.includes("YOUR_CALC")) {
                     try {
-                        const calcRes = await fetch(TEAM_A_CALC_CSV_URL);
+                        const calcRes = await fetch(TEAM_A_CALC_CSV_URL, { cache: "no-store" });
                         const calcText = await calcRes.text();
                         calcRows = parseCSV(calcText);
                     } catch (e) {
                         console.warn("Could not fetch Calc tab data:", e);
                     }
                 }
+
+                grid.innerHTML = "";
 
                 // Map grid cell by cell matching (Row x Col)
                 const tiles = [];
@@ -169,10 +270,8 @@
                 boardRows.forEach((row, rIdx) => {
                     row.forEach((cell, cIdx) => {
                         const val = cell.trim();
-                        // Ignore headers, empty cells, and naked booleans
                         if (val && !val.startsWith("Team") && val.toLowerCase() !== "false" && val.toLowerCase() !== "true") {
                             
-                            // Check if corresponding cell in Calc tab is TRUE
                             let isDone = false;
                             if (calcRows[rIdx] && calcRows[rIdx][cIdx]) {
                                 const calcVal = calcRows[rIdx][cIdx].trim().toUpperCase();
@@ -185,7 +284,7 @@
                     });
                 });
 
-                // Render up to 25 tiles into 5x5 grid
+                // Render tiles
                 tiles.slice(0, 25).forEach(tileObj => {
                     const tile = document.createElement('div');
                     tile.className = `bingo-tile ${tileObj.completed ? 'completed' : ''}`;
@@ -199,11 +298,16 @@
             } catch (err) {
                 console.error(err);
                 status.innerText = "Error loading board data. Check CSV permissions.";
+            } finally {
+                isFetching = false;
+                btn.disabled = false;
+                btn.innerText = "🔄 Refresh Board";
+                startTimer(); // Reset countdown timer back to 60s
             }
         }
 
+        // Initial Load
         loadTeamABoard();
-        setInterval(loadTeamABoard, 60000);
     </script>
 </body>
 </html>
